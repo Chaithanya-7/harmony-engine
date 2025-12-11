@@ -9,6 +9,9 @@ interface CallData {
   fraudIndicators: string[];
   scenarioType?: string;
   callerId?: string;
+  transcript?: string;
+  recordingUrl?: string;
+  audioAnalysis?: Record<string, unknown>;
 }
 
 export function useCallHistory() {
@@ -34,7 +37,7 @@ export function useCallHistory() {
           fraud_indicators: callData.fraudIndicators,
           scenario_type: callData.scenarioType || null,
           caller_id: callData.callerId || null,
-        })
+        } as any)
         .select()
         .single();
 
@@ -76,7 +79,7 @@ export function useCallHistory() {
       }
 
       return callRecord;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error saving call:", error);
       toast({
         variant: "destructive",
@@ -89,5 +92,38 @@ export function useCallHistory() {
     }
   }, []);
 
-  return { saveCall, isSaving };
+  const getCallWithRecording = useCallback(async (callId: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+
+      const { data, error } = await supabase
+        .from("call_history")
+        .select("*")
+        .eq("id", callId)
+        .eq("user_id", user.id)
+        .single();
+
+      if (error) throw error;
+
+      // Get signed URL for recording if exists
+      if (data?.recording_url) {
+        const { data: urlData } = await supabase.storage
+          .from("call-recordings")
+          .createSignedUrl(data.recording_url, 3600); // 1 hour validity
+
+        return {
+          ...data,
+          signedRecordingUrl: urlData?.signedUrl,
+        };
+      }
+
+      return data;
+    } catch (error) {
+      console.error("Error fetching call:", error);
+      return null;
+    }
+  }, []);
+
+  return { saveCall, getCallWithRecording, isSaving };
 }

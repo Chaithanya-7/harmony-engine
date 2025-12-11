@@ -120,13 +120,15 @@ const Index = () => {
     ]);
   }, [saveCall, user]);
 
-  const handleCallEnd = useCallback(async (result: { duration: number; riskLevel: 'safe' | 'warning' | 'blocked'; riskScore: number; fraudIndicators: string[] }) => {
+  const handleCallEnd = useCallback(async (result: { duration: number; riskLevel: 'safe' | 'warning' | 'blocked'; riskScore: number; fraudIndicators: string[]; transcript?: string; recordingUrl?: string }) => {
     // Save to database
     await saveCall({
       duration: result.duration,
       riskLevel: result.riskLevel,
       riskScore: result.riskScore,
       fraudIndicators: result.fraudIndicators,
+      transcript: result.transcript,
+      recordingUrl: result.recordingUrl,
     }, user?.email);
 
     setStats((prev) => ({
