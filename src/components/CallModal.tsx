@@ -12,7 +12,12 @@ import { Progress } from "@/components/ui/progress";
 interface CallModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCallEnd: (result: { duration: number; riskLevel: 'safe' | 'warning' | 'blocked' }) => void;
+  onCallEnd: (result: { 
+    duration: number; 
+    riskLevel: 'safe' | 'warning' | 'blocked';
+    riskScore: number;
+    fraudIndicators: string[];
+  }) => void;
 }
 
 const CallModal = ({ isOpen, onClose, onCallEnd }: CallModalProps) => {
@@ -76,13 +81,21 @@ const CallModal = ({ isOpen, onClose, onCallEnd }: CallModalProps) => {
   const handleEndCall = () => {
     setCallState('analyzing');
     
+    const finalRiskScore = riskScore;
+    const finalIndicators = [...fraudIndicators];
+    
     setTimeout(() => {
       let riskLevel: 'safe' | 'warning' | 'blocked';
-      if (riskScore < 30) riskLevel = 'safe';
-      else if (riskScore < 60) riskLevel = 'warning';
+      if (finalRiskScore < 30) riskLevel = 'safe';
+      else if (finalRiskScore < 60) riskLevel = 'warning';
       else riskLevel = 'blocked';
 
-      onCallEnd({ duration, riskLevel });
+      onCallEnd({ 
+        duration, 
+        riskLevel,
+        riskScore: finalRiskScore,
+        fraudIndicators: finalIndicators,
+      });
       setCallState('complete');
       
       setTimeout(() => {
