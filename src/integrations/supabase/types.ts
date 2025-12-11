@@ -16,39 +16,51 @@ export type Database = {
     Tables: {
       call_history: {
         Row: {
+          audio_analysis: Json | null
           caller_id: string | null
           created_at: string
           duration: number
           fraud_indicators: string[] | null
           id: string
           notes: string | null
+          recording_url: string | null
           risk_level: Database["public"]["Enums"]["risk_level"]
           risk_score: number
           scenario_type: string | null
+          transcript: string | null
+          transcript_segments: Json | null
           user_id: string
         }
         Insert: {
+          audio_analysis?: Json | null
           caller_id?: string | null
           created_at?: string
           duration?: number
           fraud_indicators?: string[] | null
           id?: string
           notes?: string | null
+          recording_url?: string | null
           risk_level?: Database["public"]["Enums"]["risk_level"]
           risk_score?: number
           scenario_type?: string | null
+          transcript?: string | null
+          transcript_segments?: Json | null
           user_id: string
         }
         Update: {
+          audio_analysis?: Json | null
           caller_id?: string | null
           created_at?: string
           duration?: number
           fraud_indicators?: string[] | null
           id?: string
           notes?: string | null
+          recording_url?: string | null
           risk_level?: Database["public"]["Enums"]["risk_level"]
           risk_score?: number
           scenario_type?: string | null
+          transcript?: string | null
+          transcript_segments?: Json | null
           user_id?: string
         }
         Relationships: []
