@@ -1,0 +1,400 @@
+// TextFeatureExtractor - Deep linguistic signal extraction from transcribed text
+
+export interface TextFeatures {
+  // Authority claims
+  authorityScore: number;
+  authorityPhrases: string[];
+  
+  // Urgency patterns
+  urgencyScore: number;
+  urgencyIndicators: string[];
+  
+  // Threat lexicon density
+  threatDensity: number;
+  threatTerms: string[];
+  
+  // PII requests
+  piiRequestScore: number;
+  piiTypes: string[];
+  
+  // Imperative frequency
+  imperativeFrequency: number;
+  imperativeVerbs: string[];
+  
+  // Additional NLP features
+  sentimentPolarity: number;
+  subjectivityScore: number;
+  questionFrequency: number;
+  negationFrequency: number;
+  
+  // N-gram based scores
+  bigramThreatScore: number;
+  trigramPatternScore: number;
+  
+  // Overall fraud likelihood from text
+  textFraudScore: number;
+}
+
+interface NGramScore {
+  ngram: string;
+  score: number;
+  category: string;
+}
+
+export class TextFeatureExtractor {
+  // Authority claim patterns
+  private authorityPatterns: RegExp[] = [
+    /\b(i am|this is|i'm calling from)\s+(the\s+)?(irs|fbi|police|government|department|agency|bank|microsoft|apple|amazon|social security|medicare)/i,
+    /\b(official|authorized|certified|licensed|government|federal)\s+(agent|officer|representative|department)/i,
+    /\bwe\s+(have|need)\s+(your|the)\s+(information|records|file|case)/i,
+    /\b(badge\s+number|case\s+number|reference\s+number|warrant)/i,
+    /\byour\s+(account|case|file)\s+(has been|is being|will be)/i,
+  ];
+
+  // Urgency patterns
+  private urgencyPatterns: RegExp[] = [
+    /\b(immediately|urgent|right now|today|within\s+\d+\s+(hours?|minutes?|days?))/i,
+    /\b(limited time|expires?|deadline|last chance|final notice)/i,
+    /\b(act now|don't wait|hurry|quickly|as soon as possible|asap)/i,
+    /\b(before\s+it's\s+too\s+late|time\s+is\s+running\s+out)/i,
+    /\b(only\s+\d+\s+(left|remaining|available))/i,
+  ];
+
+  // Threat lexicon
+  private threatPatterns: RegExp[] = [
+    /\b(arrest|jail|prison|lawsuit|legal\s+action|prosecution)/i,
+    /\b(suspend|terminate|cancel|freeze|block)\s+(your\s+)?(account|service|benefits)/i,
+    /\b(warrant|subpoena|court\s+order|criminal\s+charges)/i,
+    /\b(penalty|fine|fee|charge)\s+of\s+\$?\d+/i,
+    /\b(if\s+you\s+don't|unless\s+you|failure\s+to)/i,
+    /\b(consequences|serious|severe|immediate\s+action)/i,
+  ];
+
+  // PII request patterns
+  private piiPatterns: Record<string, RegExp[]> = {
+    ssn: [
+      /\b(social\s+security|ssn|social\s+security\s+number)/i,
+      /\b(last\s+four|last\s+4)\s+(digits|numbers)/i,
+    ],
+    financial: [
+      /\b(bank\s+account|routing\s+number|credit\s+card|debit\s+card)/i,
+      /\b(account\s+number|pin|cvv|security\s+code)/i,
+    ],
+    identity: [
+      /\b(date\s+of\s+birth|dob|birthday|mother's\s+maiden)/i,
+      /\b(driver's?\s+license|passport|id\s+number)/i,
+    ],
+    access: [
+      /\b(password|login|username|email\s+address)/i,
+      /\b(verification\s+code|one-time\s+password|otp)/i,
+    ],
+  };
+
+  // Imperative verbs
+  private imperativeVerbs: string[] = [
+    'call', 'contact', 'provide', 'give', 'send', 'transfer', 'pay',
+    'confirm', 'verify', 'enter', 'click', 'go', 'press', 'download',
+    'install', 'open', 'access', 'log', 'sign', 'buy', 'purchase'
+  ];
+
+  // Threat bigrams for scoring
+  private threatBigrams: Record<string, number> = {
+    'arrest warrant': 0.9,
+    'legal action': 0.8,
+    'criminal charges': 0.9,
+    'pay immediately': 0.85,
+    'account suspended': 0.75,
+    'verify identity': 0.6,
+    'confirm information': 0.5,
+    'gift card': 0.95,
+    'wire transfer': 0.85,
+    'bitcoin payment': 0.9,
+  };
+
+  // Extract all features from text
+  extract(text: string): TextFeatures {
+    const words = this.tokenize(text);
+    const sentences = this.splitSentences(text);
+
+    const authorityResult = this.extractAuthorityFeatures(text);
+    const urgencyResult = this.extractUrgencyFeatures(text);
+    const threatResult = this.extractThreatFeatures(text);
+    const piiResult = this.extractPIIFeatures(text);
+    const imperativeResult = this.extractImperativeFeatures(words);
+
+    const sentimentPolarity = this.calculateSentiment(text);
+    const subjectivityScore = this.calculateSubjectivity(text);
+    const questionFrequency = this.calculateQuestionFrequency(sentences);
+    const negationFrequency = this.calculateNegationFrequency(words);
+
+    const bigramThreatScore = this.calculateBigramScore(text);
+    const trigramPatternScore = this.calculateTrigramScore(text);
+
+    // Calculate overall text fraud score
+    const textFraudScore = this.calculateOverallFraudScore({
+      authorityScore: authorityResult.score,
+      urgencyScore: urgencyResult.score,
+      threatDensity: threatResult.density,
+      piiRequestScore: piiResult.score,
+      imperativeFrequency: imperativeResult.frequency,
+      bigramThreatScore,
+      trigramPatternScore,
+      sentimentPolarity,
+    });
+
+    return {
+      authorityScore: authorityResult.score,
+      authorityPhrases: authorityResult.phrases,
+      urgencyScore: urgencyResult.score,
+      urgencyIndicators: urgencyResult.indicators,
+      threatDensity: threatResult.density,
+      threatTerms: threatResult.terms,
+      piiRequestScore: piiResult.score,
+      piiTypes: piiResult.types,
+      imperativeFrequency: imperativeResult.frequency,
+      imperativeVerbs: imperativeResult.verbs,
+      sentimentPolarity,
+      subjectivityScore,
+      questionFrequency,
+      negationFrequency,
+      bigramThreatScore,
+      trigramPatternScore,
+      textFraudScore,
+    };
+  }
+
+  private tokenize(text: string): string[] {
+    return text.toLowerCase().split(/\s+/).filter(w => w.length > 0);
+  }
+
+  private splitSentences(text: string): string[] {
+    return text.split(/[.!?]+/).filter(s => s.trim().length > 0);
+  }
+
+  private extractAuthorityFeatures(text: string): { score: number; phrases: string[] } {
+    const phrases: string[] = [];
+    let matchCount = 0;
+
+    this.authorityPatterns.forEach(pattern => {
+      const matches = text.match(pattern);
+      if (matches) {
+        matchCount++;
+        phrases.push(matches[0]);
+      }
+    });
+
+    const score = Math.min(1, matchCount * 0.3);
+    return { score, phrases };
+  }
+
+  private extractUrgencyFeatures(text: string): { score: number; indicators: string[] } {
+    const indicators: string[] = [];
+    let matchCount = 0;
+
+    this.urgencyPatterns.forEach(pattern => {
+      const matches = text.match(pattern);
+      if (matches) {
+        matchCount++;
+        indicators.push(matches[0]);
+      }
+    });
+
+    const score = Math.min(1, matchCount * 0.25);
+    return { score, indicators };
+  }
+
+  private extractThreatFeatures(text: string): { density: number; terms: string[] } {
+    const terms: string[] = [];
+    let matchCount = 0;
+    const words = this.tokenize(text);
+
+    this.threatPatterns.forEach(pattern => {
+      const matches = text.match(pattern);
+      if (matches) {
+        matchCount++;
+        terms.push(matches[0]);
+      }
+    });
+
+    const density = words.length > 0 ? Math.min(1, (matchCount * 3) / words.length) : 0;
+    return { density, terms };
+  }
+
+  private extractPIIFeatures(text: string): { score: number; types: string[] } {
+    const types: string[] = [];
+    let totalScore = 0;
+
+    Object.entries(this.piiPatterns).forEach(([type, patterns]) => {
+      patterns.forEach(pattern => {
+        if (pattern.test(text)) {
+          types.push(type);
+          totalScore += 0.25;
+        }
+      });
+    });
+
+    const score = Math.min(1, totalScore);
+    return { score, types: [...new Set(types)] };
+  }
+
+  private extractImperativeFeatures(words: string[]): { frequency: number; verbs: string[] } {
+    const foundVerbs: string[] = [];
+
+    words.forEach((word, index) => {
+      if (this.imperativeVerbs.includes(word)) {
+        // Check if it's likely imperative (sentence start or after punctuation)
+        if (index === 0 || words[index - 1]?.match(/[.!?]/)) {
+          foundVerbs.push(word);
+        } else {
+          // Still count but with lower weight
+          foundVerbs.push(word);
+        }
+      }
+    });
+
+    const frequency = words.length > 0 ? foundVerbs.length / words.length : 0;
+    return { frequency, verbs: [...new Set(foundVerbs)] };
+  }
+
+  private calculateSentiment(text: string): number {
+    // Simplified sentiment using word lists
+    const positiveWords = ['good', 'great', 'help', 'opportunity', 'benefit', 'reward', 'winner', 'congratulations'];
+    const negativeWords = ['bad', 'problem', 'issue', 'suspend', 'cancel', 'arrest', 'lawsuit', 'penalty', 'fraud', 'illegal'];
+
+    const words = this.tokenize(text);
+    let positiveCount = 0;
+    let negativeCount = 0;
+
+    words.forEach(word => {
+      if (positiveWords.includes(word)) positiveCount++;
+      if (negativeWords.includes(word)) negativeCount++;
+    });
+
+    const total = positiveCount + negativeCount;
+    if (total === 0) return 0;
+
+    return (positiveCount - negativeCount) / total;
+  }
+
+  private calculateSubjectivity(text: string): number {
+    // Words indicating subjective vs objective language
+    const subjectiveMarkers = ['think', 'believe', 'feel', 'opinion', 'seem', 'appear', 'probably', 'maybe', 'might'];
+    const words = this.tokenize(text);
+    
+    const subjectiveCount = words.filter(w => subjectiveMarkers.includes(w)).length;
+    return Math.min(1, subjectiveCount / 10);
+  }
+
+  private calculateQuestionFrequency(sentences: string[]): number {
+    if (sentences.length === 0) return 0;
+    const questions = sentences.filter(s => s.includes('?')).length;
+    return questions / sentences.length;
+  }
+
+  private calculateNegationFrequency(words: string[]): number {
+    const negations = ['not', "n't", 'no', 'never', 'none', 'nothing', 'neither', 'nobody', 'nowhere'];
+    const negationCount = words.filter(w => negations.some(n => w.includes(n))).length;
+    return words.length > 0 ? negationCount / words.length : 0;
+  }
+
+  private calculateBigramScore(text: string): number {
+    const words = this.tokenize(text);
+    let maxScore = 0;
+
+    for (let i = 0; i < words.length - 1; i++) {
+      const bigram = `${words[i]} ${words[i + 1]}`;
+      const score = this.threatBigrams[bigram] || 0;
+      maxScore = Math.max(maxScore, score);
+    }
+
+    return maxScore;
+  }
+
+  private calculateTrigramScore(text: string): number {
+    // Pattern-based trigram scoring
+    const dangerousPatterns = [
+      { pattern: /send\s+\w+\s+money/i, score: 0.9 },
+      { pattern: /buy\s+gift\s+cards?/i, score: 0.95 },
+      { pattern: /don't\s+tell\s+anyone/i, score: 0.85 },
+      { pattern: /keep\s+this\s+confidential/i, score: 0.8 },
+      { pattern: /wire\s+\w+\s+immediately/i, score: 0.9 },
+      { pattern: /verify\s+your\s+(identity|account)/i, score: 0.6 },
+    ];
+
+    let maxScore = 0;
+    dangerousPatterns.forEach(({ pattern, score }) => {
+      if (pattern.test(text)) {
+        maxScore = Math.max(maxScore, score);
+      }
+    });
+
+    return maxScore;
+  }
+
+  private calculateOverallFraudScore(features: {
+    authorityScore: number;
+    urgencyScore: number;
+    threatDensity: number;
+    piiRequestScore: number;
+    imperativeFrequency: number;
+    bigramThreatScore: number;
+    trigramPatternScore: number;
+    sentimentPolarity: number;
+  }): number {
+    // Weighted combination of features
+    const weights = {
+      authority: 0.15,
+      urgency: 0.15,
+      threat: 0.2,
+      pii: 0.25,
+      imperative: 0.05,
+      bigram: 0.1,
+      trigram: 0.1,
+    };
+
+    let score = 
+      features.authorityScore * weights.authority +
+      features.urgencyScore * weights.urgency +
+      features.threatDensity * weights.threat +
+      features.piiRequestScore * weights.pii +
+      features.imperativeFrequency * weights.imperative +
+      features.bigramThreatScore * weights.bigram +
+      features.trigramPatternScore * weights.trigram;
+
+    // Boost if multiple high-risk signals present
+    const highRiskCount = [
+      features.authorityScore > 0.5,
+      features.urgencyScore > 0.5,
+      features.piiRequestScore > 0.5,
+      features.bigramThreatScore > 0.7,
+    ].filter(Boolean).length;
+
+    if (highRiskCount >= 2) {
+      score = Math.min(1, score * 1.3);
+    }
+    if (highRiskCount >= 3) {
+      score = Math.min(1, score * 1.2);
+    }
+
+    return Math.min(1, score);
+  }
+
+  // Get feature vector for ML model input
+  getFeatureVector(features: TextFeatures): number[] {
+    return [
+      features.authorityScore,
+      features.urgencyScore,
+      features.threatDensity,
+      features.piiRequestScore,
+      features.imperativeFrequency,
+      features.sentimentPolarity,
+      features.subjectivityScore,
+      features.questionFrequency,
+      features.negationFrequency,
+      features.bigramThreatScore,
+      features.trigramPatternScore,
+    ];
+  }
+}
+
+export const textFeatureExtractor = new TextFeatureExtractor();
