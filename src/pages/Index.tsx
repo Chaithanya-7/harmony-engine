@@ -6,11 +6,14 @@ import StatsGrid from "@/components/StatsGrid";
 import CallDurationChart from "@/components/CallDurationChart";
 import RiskBreakdown from "@/components/RiskBreakdown";
 import CallModal from "@/components/CallModal";
+import { LiveAnalysisView } from "@/components/LiveAnalysisView";
 import { toast } from "@/hooks/use-toast";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCallHistory } from "@/hooks/useCallHistory";
 import { supabase } from "@/integrations/supabase/client";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Radio, FlaskConical } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -170,7 +173,26 @@ const Index = () => {
           <Header onRefresh={handleRefresh} onMakeCall={handleMakeCall} />
 
           <main className="space-y-6">
-            <SimulationLab onScenarioComplete={handleScenarioComplete} />
+            <Tabs defaultValue="live" className="w-full">
+              <TabsList className="grid w-full max-w-md grid-cols-2">
+                <TabsTrigger value="live" className="gap-2">
+                  <Radio className="h-4 w-4" />
+                  Live Analysis
+                </TabsTrigger>
+                <TabsTrigger value="simulation" className="gap-2">
+                  <FlaskConical className="h-4 w-4" />
+                  Simulation Lab
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="live" className="mt-6">
+                <LiveAnalysisView onCallEnd={handleCallEnd} />
+              </TabsContent>
+              
+              <TabsContent value="simulation" className="mt-6">
+                <SimulationLab onScenarioComplete={handleScenarioComplete} />
+              </TabsContent>
+            </Tabs>
             
             <StatsGrid stats={stats} />
 
