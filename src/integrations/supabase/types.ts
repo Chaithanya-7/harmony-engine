@@ -14,7 +14,86 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      call_history: {
+        Row: {
+          caller_id: string | null
+          created_at: string
+          duration: number
+          fraud_indicators: string[] | null
+          id: string
+          notes: string | null
+          risk_level: Database["public"]["Enums"]["risk_level"]
+          risk_score: number
+          scenario_type: string | null
+          user_id: string
+        }
+        Insert: {
+          caller_id?: string | null
+          created_at?: string
+          duration?: number
+          fraud_indicators?: string[] | null
+          id?: string
+          notes?: string | null
+          risk_level?: Database["public"]["Enums"]["risk_level"]
+          risk_score?: number
+          scenario_type?: string | null
+          user_id: string
+        }
+        Update: {
+          caller_id?: string | null
+          created_at?: string
+          duration?: number
+          fraud_indicators?: string[] | null
+          id?: string
+          notes?: string | null
+          risk_level?: Database["public"]["Enums"]["risk_level"]
+          risk_score?: number
+          scenario_type?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      fraud_alerts: {
+        Row: {
+          alert_type: string
+          call_id: string | null
+          created_at: string
+          email_sent: boolean | null
+          id: string
+          message: string
+          read: boolean | null
+          user_id: string
+        }
+        Insert: {
+          alert_type?: string
+          call_id?: string | null
+          created_at?: string
+          email_sent?: boolean | null
+          id?: string
+          message: string
+          read?: boolean | null
+          user_id: string
+        }
+        Update: {
+          alert_type?: string
+          call_id?: string | null
+          created_at?: string
+          email_sent?: boolean | null
+          id?: string
+          message?: string
+          read?: boolean | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fraud_alerts_call_id_fkey"
+            columns: ["call_id"]
+            isOneToOne: false
+            referencedRelation: "call_history"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +102,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      risk_level: "safe" | "warning" | "blocked"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +229,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      risk_level: ["safe", "warning", "blocked"],
+    },
   },
 } as const

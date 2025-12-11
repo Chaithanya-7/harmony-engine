@@ -1,5 +1,7 @@
-import { RefreshCw, Phone, Shield } from "lucide-react";
+import { RefreshCw, Phone, Shield, History, LogOut } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface HeaderProps {
   onRefresh: () => void;
@@ -7,6 +9,14 @@ interface HeaderProps {
 }
 
 const Header = ({ onRefresh, onMakeCall }: HeaderProps) => {
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/auth");
+  };
+
   return (
     <header className="flex items-center justify-between py-6 animate-fade-in">
       <div className="flex items-center gap-3">
@@ -25,14 +35,30 @@ const Header = ({ onRefresh, onMakeCall }: HeaderProps) => {
       </div>
 
       <div className="flex items-center gap-3">
-        <Button variant="outline" onClick={onRefresh} className="gap-2">
-          <RefreshCw className="w-4 h-4" />
-          Refresh
-        </Button>
-        <Button variant="danger" onClick={onMakeCall} className="gap-2">
-          <Phone className="w-4 h-4" />
-          Make Call
-        </Button>
+        {user && (
+          <>
+            <Button variant="outline" onClick={() => navigate("/history")} className="gap-2">
+              <History className="w-4 h-4" />
+              <span className="hidden sm:inline">History</span>
+            </Button>
+            <Button variant="outline" onClick={onRefresh} className="gap-2">
+              <RefreshCw className="w-4 h-4" />
+              <span className="hidden sm:inline">Refresh</span>
+            </Button>
+            <Button variant="danger" onClick={onMakeCall} className="gap-2">
+              <Phone className="w-4 h-4" />
+              Make Call
+            </Button>
+            <Button variant="ghost" size="icon" onClick={handleSignOut} title="Sign Out">
+              <LogOut className="w-4 h-4" />
+            </Button>
+          </>
+        )}
+        {!user && (
+          <Button variant="danger" onClick={() => navigate("/auth")}>
+            Sign In
+          </Button>
+        )}
       </div>
     </header>
   );
