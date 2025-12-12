@@ -21,6 +21,10 @@ export interface TextFeatures {
   imperativeFrequency: number;
   imperativeVerbs: string[];
   
+  // Cyberbullying/Harassment detection
+  cyberbullyingScore: number;
+  harassmentIndicators: string[];
+  
   // Additional NLP features
   sentimentPolarity: number;
   subjectivityScore: number;
@@ -97,6 +101,33 @@ export class TextFeatureExtractor {
     'install', 'open', 'access', 'log', 'sign', 'buy', 'purchase'
   ];
 
+  // Cyberbullying and harassment patterns
+  private cyberbullyingPatterns: RegExp[] = [
+    // Direct insults and name-calling
+    /\b(idiot|stupid|dumb|loser|pathetic|worthless|ugly|fat|disgusting|trash|garbage|moron|retard)/i,
+    // Profanity and vulgar insults
+    /\b(f+u+c+k+|sh+i+t+|b+i+t+c+h+|a+s+s+h+o+l+e+|d+a+m+n+|hell|crap|bastard|dick|pussy)/i,
+    // Threats
+    /\b(kill|murder|die|hurt|beat|punch|attack|destroy)\s+(you|yourself)/i,
+    /\b(i('ll|'m going to|will)|we('ll| will))\s+(kill|hurt|beat|destroy|attack)/i,
+    /\b(you should|go)\s+(die|kill yourself)/i,
+    // Harassment phrases
+    /\b(nobody likes you|everyone hates you|no one cares|you('re| are) nothing)/i,
+    /\b(shut (the fuck )?up|go away|leave me alone)/i,
+    /\b(i hate you|you('re| are) so (stupid|ugly|fat|dumb|worthless))/i,
+    // Stalking language
+    /\b(i('m| am) watching you|i know where you live|i('ll| will) find you)/i,
+    // Sexual harassment
+    /\b(send (me )?nudes|show me your|touch (yourself|your))/i,
+    // Intimidation
+    /\b(you('ll| will) (regret|pay|be sorry)|watch your back)/i,
+    /\b(i('ll| will) make (you|your life))/i,
+    // Racial/ethnic slurs (partial list - common patterns)
+    /\b(n+i+g+g+|ch+i+n+k+|sp+i+c+|k+i+k+e+|w+e+t+b+a+c+k+)/i,
+    // Ableist language
+    /\b(retard(ed)?|cripple|spaz|lame)/i,
+  ];
+
   // Threat bigrams for scoring
   private threatBigrams: Record<string, number> = {
     'arrest warrant': 0.9,
@@ -109,6 +140,14 @@ export class TextFeatureExtractor {
     'gift card': 0.95,
     'wire transfer': 0.85,
     'bitcoin payment': 0.9,
+    // Cyberbullying bigrams
+    'kill yourself': 1.0,
+    'hate you': 0.7,
+    'hurt you': 0.9,
+    'nobody likes': 0.6,
+    'everyone hates': 0.7,
+    'so ugly': 0.6,
+    'so stupid': 0.6,
   };
 
   // Extract all features from text
@@ -121,6 +160,7 @@ export class TextFeatureExtractor {
     const threatResult = this.extractThreatFeatures(text);
     const piiResult = this.extractPIIFeatures(text);
     const imperativeResult = this.extractImperativeFeatures(words);
+    const cyberbullyingResult = this.extractCyberbullyingFeatures(text);
 
     const sentimentPolarity = this.calculateSentiment(text);
     const subjectivityScore = this.calculateSubjectivity(text);
@@ -130,7 +170,7 @@ export class TextFeatureExtractor {
     const bigramThreatScore = this.calculateBigramScore(text);
     const trigramPatternScore = this.calculateTrigramScore(text);
 
-    // Calculate overall text fraud score
+    // Calculate overall text fraud score (includes cyberbullying)
     const textFraudScore = this.calculateOverallFraudScore({
       authorityScore: authorityResult.score,
       urgencyScore: urgencyResult.score,
@@ -140,6 +180,7 @@ export class TextFeatureExtractor {
       bigramThreatScore,
       trigramPatternScore,
       sentimentPolarity,
+      cyberbullyingScore: cyberbullyingResult.score,
     });
 
     return {
@@ -153,6 +194,8 @@ export class TextFeatureExtractor {
       piiTypes: piiResult.types,
       imperativeFrequency: imperativeResult.frequency,
       imperativeVerbs: imperativeResult.verbs,
+      cyberbullyingScore: cyberbullyingResult.score,
+      harassmentIndicators: cyberbullyingResult.indicators,
       sentimentPolarity,
       subjectivityScore,
       questionFrequency,
@@ -161,6 +204,31 @@ export class TextFeatureExtractor {
       trigramPatternScore,
       textFraudScore,
     };
+  }
+
+  // Extract cyberbullying and harassment features
+  private extractCyberbullyingFeatures(text: string): { score: number; indicators: string[] } {
+    const indicators: string[] = [];
+    let matchCount = 0;
+
+    this.cyberbullyingPatterns.forEach(pattern => {
+      const matches = text.match(new RegExp(pattern, 'gi'));
+      if (matches) {
+        matchCount += matches.length;
+        indicators.push(...matches.map(m => m.toLowerCase()));
+      }
+    });
+
+    // Score based on number of matches - cyberbullying is high priority
+    const score = Math.min(1, matchCount * 0.3);
+    
+    console.log('[TextFeatures] Cyberbullying detection:', {
+      matchCount,
+      score,
+      indicators: [...new Set(indicators)].slice(0, 5)
+    });
+
+    return { score, indicators: [...new Set(indicators)] };
   }
 
   private tokenize(text: string): string[] {
@@ -340,16 +408,18 @@ export class TextFeatureExtractor {
     bigramThreatScore: number;
     trigramPatternScore: number;
     sentimentPolarity: number;
+    cyberbullyingScore?: number;
   }): number {
     // Weighted combination of features
     const weights = {
-      authority: 0.15,
-      urgency: 0.15,
-      threat: 0.2,
-      pii: 0.25,
+      authority: 0.12,
+      urgency: 0.12,
+      threat: 0.15,
+      pii: 0.2,
       imperative: 0.05,
-      bigram: 0.1,
-      trigram: 0.1,
+      bigram: 0.08,
+      trigram: 0.08,
+      cyberbullying: 0.2, // High weight for harassment detection
     };
 
     let score = 
@@ -359,7 +429,8 @@ export class TextFeatureExtractor {
       features.piiRequestScore * weights.pii +
       features.imperativeFrequency * weights.imperative +
       features.bigramThreatScore * weights.bigram +
-      features.trigramPatternScore * weights.trigram;
+      features.trigramPatternScore * weights.trigram +
+      (features.cyberbullyingScore || 0) * weights.cyberbullying;
 
     // Boost if multiple high-risk signals present
     const highRiskCount = [
@@ -367,6 +438,7 @@ export class TextFeatureExtractor {
       features.urgencyScore > 0.5,
       features.piiRequestScore > 0.5,
       features.bigramThreatScore > 0.7,
+      (features.cyberbullyingScore || 0) > 0.3, // Cyberbullying is high priority
     ].filter(Boolean).length;
 
     if (highRiskCount >= 2) {
@@ -374,6 +446,11 @@ export class TextFeatureExtractor {
     }
     if (highRiskCount >= 3) {
       score = Math.min(1, score * 1.2);
+    }
+
+    // Cyberbullying detected = automatic high risk
+    if ((features.cyberbullyingScore || 0) > 0.5) {
+      score = Math.max(score, 0.7);
     }
 
     return Math.min(1, score);
