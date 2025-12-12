@@ -7,13 +7,14 @@ import CallDurationChart from "@/components/CallDurationChart";
 import RiskBreakdown from "@/components/RiskBreakdown";
 import CallModal from "@/components/CallModal";
 import { LiveAnalysisView } from "@/components/LiveAnalysisView";
+import { CallerAnalysisCard } from "@/components/CallerAnalysisCard";
 import { toast } from "@/hooks/use-toast";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCallHistory } from "@/hooks/useCallHistory";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Radio, FlaskConical } from "lucide-react";
+import { Radio, FlaskConical, Brain } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -185,19 +186,27 @@ const Index = () => {
 
           <main className="space-y-6">
             <Tabs defaultValue="live" className="w-full">
-              <TabsList className="grid w-full max-w-md grid-cols-2">
+              <TabsList className="grid w-full max-w-lg grid-cols-3">
                 <TabsTrigger value="live" className="gap-2">
                   <Radio className="h-4 w-4" />
                   Live Analysis
                 </TabsTrigger>
+                <TabsTrigger value="caller" className="gap-2">
+                  <Brain className="h-4 w-4" />
+                  Caller AI
+                </TabsTrigger>
                 <TabsTrigger value="simulation" className="gap-2">
                   <FlaskConical className="h-4 w-4" />
-                  Simulation Lab
+                  Simulation
                 </TabsTrigger>
               </TabsList>
               
               <TabsContent value="live" className="mt-6">
                 <LiveAnalysisView onCallEnd={handleCallEnd} />
+              </TabsContent>
+
+              <TabsContent value="caller" className="mt-6">
+                <CallerAnalysisCard />
               </TabsContent>
               
               <TabsContent value="simulation" className="mt-6">
