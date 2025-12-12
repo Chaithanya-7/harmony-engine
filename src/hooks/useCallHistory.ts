@@ -37,6 +37,9 @@ export function useCallHistory() {
           fraud_indicators: callData.fraudIndicators,
           scenario_type: callData.scenarioType || null,
           caller_id: callData.callerId || null,
+          transcript: callData.transcript || null,
+          recording_url: callData.recordingUrl || null,
+          audio_analysis: callData.audioAnalysis || null,
         } as any)
         .select()
         .single();
