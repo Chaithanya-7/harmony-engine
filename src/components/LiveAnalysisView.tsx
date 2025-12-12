@@ -123,21 +123,23 @@ export function LiveAnalysisView({ onCallEnd }: LiveAnalysisViewProps) {
     };
   }, [liveAnalysis.isRecording]);
 
-  // Periodic transcription (every 10 seconds)
+  // Periodic transcription (every 5 seconds for better voice recognition)
   useEffect(() => {
     if (!liveAnalysis.isRecording) return;
 
     const interval = setInterval(async () => {
       const now = Date.now();
-      if (now - lastTranscriptionTimeRef.current >= 10000) {
+      // Transcribe every 5 seconds for better real-time recognition
+      if (now - lastTranscriptionTimeRef.current >= 5000) {
         // Get accumulated audio and transcribe
         const base64 = await recording.getRecordingBase64();
         if (base64) {
+          console.log('[LiveAnalysis] Sending audio for transcription...');
           await transcription.transcribeAudio(base64);
           lastTranscriptionTimeRef.current = now;
         }
       }
-    }, 5000);
+    }, 3000);
 
     return () => clearInterval(interval);
   }, [liveAnalysis.isRecording, recording, transcription]);
