@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      blocked_numbers: {
+        Row: {
+          blocked_at: string
+          id: string
+          message_count: number | null
+          phone_number: string
+          reason: string | null
+          user_id: string
+        }
+        Insert: {
+          blocked_at?: string
+          id?: string
+          message_count?: number | null
+          phone_number: string
+          reason?: string | null
+          user_id: string
+        }
+        Update: {
+          blocked_at?: string
+          id?: string
+          message_count?: number | null
+          phone_number?: string
+          reason?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       call_history: {
         Row: {
           audio_analysis: Json | null
@@ -105,6 +132,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      text_messages: {
+        Row: {
+          analyzed_at: string
+          detected_indicators: string[] | null
+          id: string
+          is_cyberbullying: boolean | null
+          message_content: string
+          sender_number: string
+          threat_level: string | null
+          user_id: string
+        }
+        Insert: {
+          analyzed_at?: string
+          detected_indicators?: string[] | null
+          id?: string
+          is_cyberbullying?: boolean | null
+          message_content: string
+          sender_number: string
+          threat_level?: string | null
+          user_id: string
+        }
+        Update: {
+          analyzed_at?: string
+          detected_indicators?: string[] | null
+          id?: string
+          is_cyberbullying?: boolean | null
+          message_content?: string
+          sender_number?: string
+          threat_level?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {

@@ -1,5 +1,8 @@
 project_id = "abzngybgfxqpcperxgqz"
 
+[functions.analyze-text]
+verify_jwt = false
+
 [functions.send-fraud-alert]
 verify_jwt = true
 
