@@ -120,7 +120,15 @@ const Index = () => {
     ]);
   }, [saveCall, user]);
 
-  const handleCallEnd = useCallback(async (result: { duration: number; riskLevel: 'safe' | 'warning' | 'blocked'; riskScore: number; fraudIndicators: string[]; transcript?: string; recordingUrl?: string }) => {
+  const handleCallEnd = useCallback(async (result: { 
+    duration: number; 
+    riskLevel: 'safe' | 'warning' | 'blocked'; 
+    riskScore: number; 
+    fraudIndicators: string[]; 
+    transcript?: string; 
+    recordingUrl?: string;
+    callerId?: string;
+  }) => {
     // Save to database
     await saveCall({
       duration: result.duration,
@@ -129,6 +137,7 @@ const Index = () => {
       fraudIndicators: result.fraudIndicators,
       transcript: result.transcript,
       recordingUrl: result.recordingUrl,
+      callerId: result.callerId,
     }, user?.email);
 
     setStats((prev) => ({
