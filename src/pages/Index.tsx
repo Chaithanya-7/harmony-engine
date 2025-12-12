@@ -14,7 +14,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCallHistory } from "@/hooks/useCallHistory";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Radio, FlaskConical, Brain } from "lucide-react";
+import { Radio, FlaskConical, Brain, MessageSquare } from "lucide-react";
+import { TextAnalysisPanel } from "@/components/TextAnalysisPanel";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -186,10 +187,14 @@ const Index = () => {
 
           <main className="space-y-6">
             <Tabs defaultValue="live" className="w-full">
-              <TabsList className="grid w-full max-w-lg grid-cols-3">
+              <TabsList className="grid w-full max-w-2xl grid-cols-4">
                 <TabsTrigger value="live" className="gap-2">
                   <Radio className="h-4 w-4" />
                   Live Analysis
+                </TabsTrigger>
+                <TabsTrigger value="text" className="gap-2">
+                  <MessageSquare className="h-4 w-4" />
+                  Text Check
                 </TabsTrigger>
                 <TabsTrigger value="caller" className="gap-2">
                   <Brain className="h-4 w-4" />
@@ -203,6 +208,10 @@ const Index = () => {
               
               <TabsContent value="live" className="mt-6">
                 <LiveAnalysisView onCallEnd={handleCallEnd} />
+              </TabsContent>
+
+              <TabsContent value="text" className="mt-6">
+                <TextAnalysisPanel />
               </TabsContent>
 
               <TabsContent value="caller" className="mt-6">
