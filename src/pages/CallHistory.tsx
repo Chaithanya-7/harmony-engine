@@ -11,7 +11,8 @@ import {
   AlertTriangle, 
   ShieldOff,
   ArrowLeft,
-  RefreshCw
+  RefreshCw,
+  Eye
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -344,6 +345,18 @@ const CallHistory = () => {
                             <p className="text-sm text-muted-foreground">{call.notes}</p>
                           </div>
                         )}
+
+                        <div className="mt-4 pt-4 border-t border-border">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => navigate(`/call/${call.id}`)}
+                            className="w-full sm:w-auto"
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            View Full Details
+                          </Button>
+                        </div>
                       </CardContent>
                     </CollapsibleContent>
                   </Card>
