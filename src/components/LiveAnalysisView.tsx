@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +10,7 @@ import { AudioAnalysisPanel } from './AudioAnalysisPanel';
 import { useLiveAnalysis } from '@/hooks/useLiveAnalysis';
 import { useCallRecording } from '@/hooks/useCallRecording';
 import { useTranscription } from '@/hooks/useTranscription';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { toast } from '@/hooks/use-toast';
 import { 
   Mic, 
@@ -25,7 +27,9 @@ import {
   Download,
   Pause,
   Play,
-  Square
+  Square,
+  Bell,
+  BellOff
 } from 'lucide-react';
 import type { AnalysisResult } from '@/utils/audio/FraudAnalysisPipeline';
 
@@ -41,16 +45,22 @@ interface LiveAnalysisViewProps {
 }
 
 export function LiveAnalysisView({ onCallEnd }: LiveAnalysisViewProps) {
+  const navigate = useNavigate();
   const [callDuration, setCallDuration] = useState(0);
   const [peakRisk, setPeakRisk] = useState(0);
   const [allIndicators, setAllIndicators] = useState<string[]>([]);
   const [isAnalyzingTranscript, setIsAnalyzingTranscript] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState<Record<string, unknown> | null>(null);
   const [activeTab, setActiveTab] = useState('realtime');
+  const [lastCallId, setLastCallId] = useState<string | null>(null);
   
   const audioChunksRef = useRef<Blob[]>([]);
   const transcriptionQueueRef = useRef<string[]>([]);
   const lastTranscriptionTimeRef = useRef(0);
+  const lastNotificationRiskRef = useRef(0);
+
+  // Push notifications hook
+  const pushNotifications = usePushNotifications();
 
   // Initialize hooks
   const liveAnalysis = useLiveAnalysis({
@@ -62,6 +72,23 @@ export function LiveAnalysisView({ onCallEnd }: LiveAnalysisViewProps) {
         description: `High risk detected: ${(result.fraudProbability * 100).toFixed(0)}%`,
         variant: "destructive",
       });
+
+      // Send push notification for high-risk alerts
+      const riskLevel = result.fraudProbability >= 0.8 ? 'blocked' : 'warning';
+      if (result.fraudProbability >= 0.5 && result.fraudProbability > lastNotificationRiskRef.current + 0.1) {
+        lastNotificationRiskRef.current = result.fraudProbability;
+        pushNotifications.sendFraudAlert(
+          riskLevel,
+          result.fraudProbability * 100,
+          result.fraudIndicators,
+          () => {
+            // Navigate to call details when notification is clicked
+            if (lastCallId) {
+              navigate(`/call/${lastCallId}`);
+            }
+          }
+        );
+      }
     },
     onChunkProcessed: (result) => {
       if (result.fraudProbability > peakRisk) {
@@ -127,14 +154,21 @@ export function LiveAnalysisView({ onCallEnd }: LiveAnalysisViewProps) {
         return;
       }
     }
+
+    // Request notification permission if not already granted
+    if (pushNotifications.permission === 'default') {
+      await pushNotifications.requestPermission();
+    }
     
     // Reset state
     setCallDuration(0);
     setPeakRisk(0);
     setAllIndicators([]);
     setAiAnalysis(null);
+    setLastCallId(null);
     audioChunksRef.current = [];
     lastTranscriptionTimeRef.current = Date.now();
+    lastNotificationRiskRef.current = 0;
     transcription.reset();
     
     // Start recording and analysis
@@ -265,6 +299,36 @@ export function LiveAnalysisView({ onCallEnd }: LiveAnalysisViewProps) {
               Live Fraud Analysis
             </div>
             <div className="flex items-center gap-2">
+              {/* Notification Toggle */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={async () => {
+                  if (pushNotifications.permission !== 'granted') {
+                    const granted = await pushNotifications.requestPermission();
+                    if (granted) {
+                      toast({
+                        title: "Notifications Enabled",
+                        description: "You'll receive alerts for high-risk fraud detection.",
+                      });
+                    }
+                  } else {
+                    toast({
+                      title: "Notifications Active",
+                      description: "Push notifications are already enabled.",
+                    });
+                  }
+                }}
+                className="relative"
+                title={pushNotifications.permission === 'granted' ? 'Notifications enabled' : 'Enable notifications'}
+              >
+                {pushNotifications.permission === 'granted' ? (
+                  <Bell className="h-4 w-4 text-success" />
+                ) : (
+                  <BellOff className="h-4 w-4 text-muted-foreground" />
+                )}
+              </Button>
+              
               {recording.isRecording && (
                 <Badge variant="outline" className="gap-1">
                   <Save className="h-3 w-3" />

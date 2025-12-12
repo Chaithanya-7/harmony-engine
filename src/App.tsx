@@ -8,6 +8,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import CallHistory from "./pages/CallHistory";
+import CallDetails from "./pages/CallDetails";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/history" element={<CallHistory />} />
+              <Route path="/call/:id" element={<CallDetails />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
